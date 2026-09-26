@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1790399418031,
+      "tag": "0000_absent_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1790410158458,
+      "tag": "0001_tough_the_order",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1790411189137,
+      "tag": "0002_sweet_marvex",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1790411504372,
+      "tag": "0003_funny_scarecrow",
+      "breakpoints": true
+    }
+  ]
+}
