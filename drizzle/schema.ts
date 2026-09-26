@@ -1,7 +1,12 @@
-import { int, index, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { index, integer, pgEnum, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
-export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+export const userRole = pgEnum("user_role", ["user", "admin"]);
+export const orderStatus = pgEnum("order_status", ["Hazırlanıyor", "Tamamlandı", "İptal edildi"]);
+export const invoiceType = pgEnum("invoice_type", ["individual", "corporate", "einvoice"]);
+export const reviewStatus = pgEnum("review_status", ["published", "pending", "rejected"]);
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -9,52 +14,52 @@ export const users = mysqlTable("users", {
   passwordResetToken: varchar("passwordResetToken", { length: 128 }),
   passwordResetExpiresAt: timestamp("passwordResetExpiresAt"),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: userRole("role").default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
-export const orders = mysqlTable("orders", {
-  id: int("id").autoincrement().primaryKey(),
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
   publicId: varchar("publicId", { length: 32 }).notNull().unique(),
-  userId: int("userId").notNull(),
-  total: int("total").notNull(),
-  itemCount: int("itemCount").notNull(),
-  status: mysqlEnum("status", ["Hazırlanıyor", "Tamamlandı", "İptal edildi"]).default("Hazırlanıyor").notNull(),
-  invoiceType: mysqlEnum("invoiceType", ["individual", "corporate", "einvoice"]).default("individual").notNull(),
+  userId: integer("userId").notNull(),
+  total: integer("total").notNull(),
+  itemCount: integer("itemCount").notNull(),
+  status: orderStatus("status").default("Hazırlanıyor").notNull(),
+  invoiceType: invoiceType("invoiceType").default("individual").notNull(),
   shippingAddress: text("shippingAddress"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({ userCreatedIdx: index("orders_user_created_idx").on(table.userId, table.createdAt) }));
 
-export const orderItems = mysqlTable("orderItems", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("orderId").notNull(),
-  productId: int("productId").notNull(),
+export const orderItems = pgTable("orderItems", {
+  id: serial("id").primaryKey(),
+  orderId: integer("orderId").notNull(),
+  productId: integer("productId").notNull(),
   productName: varchar("productName", { length: 255 }).notNull(),
   productImage: text("productImage"),
-  unitPrice: int("unitPrice").notNull(),
-  quantity: int("quantity").notNull(),
+  unitPrice: integer("unitPrice").notNull(),
+  quantity: integer("quantity").notNull(),
 });
 
-export const favorites = mysqlTable("favorites", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  productId: int("productId").notNull(),
+export const favorites = pgTable("favorites", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  productId: integer("productId").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({ userProductUnique: uniqueIndex("favorites_user_product_unique").on(table.userId, table.productId) }));
 
-export const reviews = mysqlTable("reviews", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  productId: int("productId").notNull(),
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  productId: integer("productId").notNull(),
   authorName: varchar("authorName", { length: 255 }).notNull(),
-  rating: int("rating").notNull(),
+  rating: integer("rating").notNull(),
   text: text("text").notNull(),
-  status: mysqlEnum("status", ["published", "pending", "rejected"]).default("published").notNull(),
+  status: reviewStatus("status").default("published").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 }, (table) => ({ productStatusIdx: index("reviews_product_status_idx").on(table.productId, table.status) }));
 
 export type User = typeof users.$inferSelect;

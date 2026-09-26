@@ -1,5 +1,5 @@
 import { and, desc, eq, gt } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { favorites, InsertUser, orderItems, orders, reviews, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -25,7 +25,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; } else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
-  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -98,7 +98,7 @@ export async function getFavoriteProductIds(openId: string) {
 export async function setFavorite(openId: string, productId: number, favorite: boolean) {
   const db = await getDb(); if (!db) throw new Error("Database unavailable");
   const userId = await requireUserId(openId);
-  if (favorite) await db.insert(favorites).values({ userId, productId }).onDuplicateKeyUpdate({ set: { productId } });
+  if (favorite) await db.insert(favorites).values({ userId, productId }).onConflictDoUpdate({ target: [favorites.userId, favorites.productId], set: { productId } });
   else await db.delete(favorites).where(and(eq(favorites.userId, userId), eq(favorites.productId, productId)));
   return getFavoriteProductIds(openId);
 }
@@ -114,8 +114,8 @@ export async function createOrder(openId: string, input: { total: number; itemCo
   const userId = await requireUserId(openId);
   const publicId = `MRJ-${Date.now().toString(36).toUpperCase()}`;
   return db.transaction(async (tx) => {
-    const result = await tx.insert(orders).values({ publicId, userId, total: input.total, itemCount: input.itemCount, invoiceType: input.invoiceType, shippingAddress: input.shippingAddress ?? null });
-    const orderId = Number(result[0].insertId);
+    const [createdOrder] = await tx.insert(orders).values({ publicId, userId, total: input.total, itemCount: input.itemCount, invoiceType: input.invoiceType, shippingAddress: input.shippingAddress ?? null }).returning({ id: orders.id });
+    const orderId = createdOrder.id;
     if (input.items.length) await tx.insert(orderItems).values(input.items.map((item) => ({ ...item, orderId, productImage: item.productImage ?? null })));
     return { publicId };
   });
